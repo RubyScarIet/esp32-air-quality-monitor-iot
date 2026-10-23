@@ -1,0 +1,21 @@
+# Virtual Environment
+venv/
+**/venv/
+.venv/
+env/
+
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# IDE & Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary data files (giu lai thu muc data nhung khong day file csv tam thoi neu can)
+# Neu muon push ca file du lieu mau len GitHub thi bo comment
+!data/*.csv
