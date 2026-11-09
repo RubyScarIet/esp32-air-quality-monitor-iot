@@ -16,6 +16,13 @@ __pycache__/
 *.swp
 *.swo
 
-# Temporary data files (giu lai thu muc data nhung khong day file csv tam thoi neu can)
-# Neu muon push ca file du lieu mau len GitHub thi bo comment
-!data/*.csv
+# Temporary data files
+data/*(dang_chay).csv
+
+# Word docs and scratch generation scripts
+*.docx
+generate_docx.py
+generate_individual_docx.py
+*.md
+!README.md
+!code/README.md
