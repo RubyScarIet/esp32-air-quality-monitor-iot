@@ -1,0 +1,53 @@
+{
+  "architecture": "4-Stage Hierarchical & Two-Stage Hurdle Ensemble",
+  "split_ratio": "80% Train (4000) / 20% Test (1000)",
+  "stage_1_risk_score_regressor": {
+    "mae_points_0_100": 0.77,
+    "r2_score": 0.9982
+  },
+  "stage_2_risk_level_classifier": {
+    "accuracy_pct": 98.9,
+    "f1_macro_pct": 98.54,
+    "confusion_matrix": [
+      [
+        452,
+        7,
+        0
+      ],
+      [
+        2,
+        170,
+        1
+      ],
+      [
+        0,
+        1,
+        367
+      ]
+    ]
+  },
+  "stage_3_hierarchical_fan_controller": {
+    "accuracy_pct": 99.7,
+    "precision_pct": 99.48,
+    "recall_pct": 99.74,
+    "f1_score_pct": 99.61,
+    "structural_conflicts": 0,
+    "confusion_matrix": [
+      [
+        618,
+        2
+      ],
+      [
+        1,
+        379
+      ]
+    ]
+  },
+  "stage_4_hurdle_duration_regressor": {
+    "overall_mae_minutes": 0.32,
+    "active_fan_mae_minutes": 0.66,
+    "rmse_minutes": 1.43,
+    "r2_score": 0.9952
+  },
+  "training_time_seconds": 14.09
+}

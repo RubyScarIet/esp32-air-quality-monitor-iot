@@ -1,0 +1,28 @@
+# Virtual Environment
+venv/
+**/venv/
+.venv/
+env/
+
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# IDE & Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary data files
+data/*(dang_chay).csv
+
+# Word docs and scratch generation scripts
+*.docx
+generate_docx.py
+generate_individual_docx.py
+*.md
+!README.md
+!code/README.md
