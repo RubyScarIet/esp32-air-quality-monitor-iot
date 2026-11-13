@@ -79,7 +79,6 @@ USER_PROFILE_COLS = [
 ]
 
 def psql_insert_copy(table, conn, keys, data_iter):
-    """Phương thức COPY siêu tốc vào PostgreSQL, tránh hoàn toàn lỗi Prepared Statement trên Supabase Pooler."""
     dbapi_conn = conn.connection
     with dbapi_conn.cursor() as cur:
         s_buf = StringIO()

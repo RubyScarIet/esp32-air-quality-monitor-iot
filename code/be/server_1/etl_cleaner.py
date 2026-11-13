@@ -237,7 +237,6 @@ def transform_and_clean_dataframe(df_raw: pd.DataFrame) -> pd.DataFrame:
 
 
 def run_incremental_etl_sync(batch_size: int = 50000) -> Dict[str, Any]:
-  """Đồng bộ toàn bộ dữ liệu thô sang CLEAN_DATABASE_URL bằng luồng COPY."""
   raw_engine = get_raw_engine()
   clean_engine = get_clean_engine()
 

@@ -1,12 +1,3 @@
-"""
-File: be/server_2/train_models.py (Phiên bản v3.0 - Hierarchical Multi-Stage & Two-Stage Hurdle Architecture)
-Cải tiến triệt để:
-  1. Stage 1 (Risk Score Regressor): Học trực tiếp cột `diem_nguy_hai_ca_nhan_0_100` (Giảm sai số MAE từ 16.85 xuống 0.79 điểm, R² = 0.9981).
-  2. Stage 2 (Meta-Feature Risk Classifier): Đưa `pred_risk_score` làm đặc trưng tầng 2, nâng Accuracy phân loại cảnh báo lên 98.80%.
-  3. Stage 3 (Hierarchical Fan Classifier + Structural Guardrail): Loại bỏ 100% nguy cơ xung đột quyết định giữa Cảnh báo Y tế và Lệnh Quạt (Accuracy đạt 99.50%).
-  4. Stage 4 (Two-Stage Hurdle Duration Regressor): Chỉ huấn luyện trên các mẫu có bật quạt (`lenh_bat_quat_ai == 1`), triệt tiêu hoàn toàn hiện tượng Zero-Inflation (Giảm MAE từ 0.87 xuống 0.37 phút, R² = 0.9930).
-"""
-
 import os
 import json
 import time

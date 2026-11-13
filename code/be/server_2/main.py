@@ -1,13 +1,3 @@
-"""
-File: code/be/server_2/main.py (Phiên bản v4.0 - Full Auth, Clean Sensor Explorer, Weather-Style Hourly Forecast & Fan Activity Log Dashboard)
-Chức năng toàn diện của Server 2:
-  1. Đăng ký tài khoản mới (`POST /api/v1/auth/register`) với đầy đủ các trường bệnh án hô hấp/phế quản & tự động nội suy ngưỡng an toàn nếu bỏ trống.
-  2. Đăng nhập (`POST /api/v1/auth/login`), xem & cập nhật hồ sơ (`GET/PUT /api/v1/users/{user_id}/profile`).
-  3. Theo dõi chi tiết các trường chỉ số đã được Clean (`GET /api/v1/sensors/clean-feed`) kèm thông điệp cảnh báo động bám sát từng dòng.
-  4. Widget Dự báo chất lượng không khí theo giờ kiểu Thời tiết (`GET /api/v1/dashboard/hourly-forecast`): Cột đầu tiên luôn là "Bây giờ" khớp 100% thực tế, nối tiếp là 12 SA, 1 SA, 2 SA... [cite: 12]
-  5. Dashboard Nhật ký Bật/Tắt Quạt (`GET /api/v1/fan/history-dashboard`): Theo dõi quạt đã bật lúc nào, tắt lúc nào, bật trong bao lâu (phút/giây), giảm được bao nhiêu µg/m³ bụi PM2.5.
-"""
-
 import hashlib
 from collections import deque
 from datetime import datetime, timedelta, timezone
@@ -58,9 +48,6 @@ ESP32_FAN_CONTROLLER_STATE: Dict[str, Any] = {
     "updated_at": None,
 }
 
-# =====================================================================
-# KHỞI TẠO BẢNG DATABASE CHO TÀI KHOẢN ĐĂNG NHẬP & NHẬT KÝ HOẠT ĐỘNG QUẠT
-# =====================================================================
 INIT_EXTRA_TABLES_SQL = """
 ALTER TABLE public.user_medical_profiles ADD COLUMN IF NOT EXISTS username VARCHAR(100) UNIQUE;
 ALTER TABLE public.user_medical_profiles ADD COLUMN IF NOT EXISTS password_hash VARCHAR(256);
@@ -98,10 +85,6 @@ def ensure_auth_and_fan_tables():
             if stmt.strip():
                 conn.execute(text(stmt))
 
-
-# =====================================================================
-# SCHEMAS ĐĂNG KÝ / ĐĂNG NHẬP TÀI KHOẢN NGƯỜI DÙNG CHI TIẾT
-# =====================================================================
 class UserRegisterRequest(BaseModel):
     username: str = Field(..., description="Tên đăng nhập hoặc Email (duy nhất)")
     password: str = Field(..., min_length=4, description="Mật khẩu đăng nhập")
@@ -130,10 +113,6 @@ class UserLoginRequest(BaseModel):
     username_or_userid: str = Field(..., description="Nhập username đã đăng ký hoặc mã user_id mẫu (VD: USR_00002)")
     password: Optional[str] = Field("", description="Mật khẩu (đối với tài khoản mẫu USR_00001..USR_05000 có thể để trống)")
 
-
-# =====================================================================
-# HÀM HỖ TRỢ CACHE & GHI NHẬT KÝ HOẠT ĐỘNG QUẠT (FAN ACTIVITY TRACKER)
-# =====================================================================
 def get_cached_user_profile(user_id: str, force_refresh: bool = False) -> Dict[str, Any]:
     if not force_refresh and user_id in USER_PROFILES_CACHE:
         return USER_PROFILES_CACHE[user_id]
@@ -175,7 +154,6 @@ def get_cached_latest_clean_sensor(force_db: bool = False) -> Dict[str, Any]:
 
 
 def _record_fan_turn_on(ai_eval: Dict[str, Any], clean_sensor: Dict[str, Any]):
-    """Ghi nhận thời điểm bắt đầu BẬT quạt vào bảng `fan_activity_logs`."""
     now_vn = datetime.now(VN_TZ)
     ESP32_FAN_CONTROLLER_STATE["active_fan_started_at"] = now_vn
     try:
@@ -207,7 +185,6 @@ def _record_fan_turn_on(ai_eval: Dict[str, Any], clean_sensor: Dict[str, Any]):
 
 
 def _record_fan_turn_off(clean_sensor: Dict[str, Any]):
-    """Cập nhật thời điểm TẮT quạt và tổng thời gian quạt đã chạy (giây/phút) vào `fan_activity_logs`."""
     now_vn = datetime.now(VN_TZ)
     log_id = ESP32_FAN_CONTROLLER_STATE.get("active_log_id")
     started_at = ESP32_FAN_CONTROLLER_STATE.get("active_fan_started_at")
@@ -246,7 +223,6 @@ def _record_fan_turn_off(clean_sensor: Dict[str, Any]):
 
 
 def update_hysteresis_fan_state(ai_eval: Dict[str, Any], clean_sensor: Dict[str, Any]) -> Dict[str, Any]:
-    """Điều khiển Vùng trễ (Hysteresis) kết hợp tự động ghi lịch sử thời gian bật quạt."""
     prev_cmd = ESP32_FAN_CONTROLLER_STATE["fan_command"]
     risk_score = ai_eval["personalized_risk_score_0_100"]
     ai_rec = ai_eval["ai_fan_recommend"]
@@ -298,17 +274,8 @@ def startup_initialize():
     except Exception as e:
         print(f"[Startup Notice]: {e}")
 
-
-# =====================================================================
-# 1. NHÓM API ĐĂNG KÝ, ĐĂNG NHẬP & HIỂN THỊ HỒ SƠ CÁ NHÂN
-# =====================================================================
 @app.post("/api/v1/auth/register")
 def register_new_user(req: UserRegisterRequest):
-    """
-    Đăng ký tài khoản người dùng mới với đầy đủ các trường thông tin y tế cá nhân hóa.
-    Nếu người dùng không nhập `nguong_pm25_an_toan_ugm3` hoặc `nguong_gas_an_toan_ppm`,
-    hệ thống tự động nội suy chuẩn xác dựa trên mức độ bệnh và độ nhạy cảm phế quản.
-    """
     engine = get_user_engine()
     bmi_calc = round(req.can_nang_kg / ((req.chieu_cao_cm / 100.0) ** 2), 1)
 
@@ -395,10 +362,6 @@ def register_new_user(req: UserRegisterRequest):
 
 @app.post("/api/v1/auth/login")
 def login_user(req: UserLoginRequest):
-    """
-    Đăng nhập bằng `username` (tài khoản mới tạo) hoặc mã `user_id` có sẵn (VD: `USR_00001`..`USR_05000`).
-    Khi đăng nhập thành công, hệ thống tự động đặt người dùng này làm `active_user_id` cho mạch ESP32!
-    """
     engine = get_user_engine()
     ident = req.username_or_userid.strip()
     df = pd.read_sql(
@@ -436,7 +399,6 @@ def login_user(req: UserLoginRequest):
 
 @app.get("/api/v1/users/{user_id}/profile")
 def get_user_account_details(user_id: str):
-    """Hiển thị toàn bộ 21 trường thông tin chi tiết của tài khoản và hồ sơ bệnh án."""
     profile = get_cached_user_profile(user_id)
     clean_sensor = get_cached_latest_clean_sensor()
     ai_eval = ai_engine.evaluate_user_and_environment(profile, clean_sensor)
@@ -446,19 +408,11 @@ def get_user_account_details(user_id: str):
     }
 
 
-# =====================================================================
-# 2. NHÓM API HIỂN THỊ CHI TIẾT CHỈ SỐ ĐÃ CLEAN & CẢNH BÁO ĐỘNG TƯƠNG ỨNG
-# =====================================================================
 @app.get("/api/v1/sensors/clean-feed")
 def get_clean_sensor_details_feed(
     user_id: Optional[str] = Query(None, description="Mã người dùng để đối chiếu cảnh báo"),
     limit: int = Query(30, ge=1, le=200, description="Số bản ghi Clean gần nhất muốn hiển thị")
 ):
-    """
-    Hiển thị chi tiết đầy đủ 19 trường thông tin của bảng `sensor_data_clean`
-    (so sánh trực diện giữa giá trị Thô và giá trị Đã làm sạch, PM2.5, Gas, AQI, Heat Index, Trạng thái cảm biến)
-    kèm thông điệp cảnh báo cá nhân hóa bám sát chính xác với thông số đang hiển thị trên màn hình.
-    """
     target_uid = user_id or ESP32_FAN_CONTROLLER_STATE["active_user_id"]
     profile = get_cached_user_profile(target_uid)
 
@@ -547,20 +501,11 @@ def get_clean_sensor_details_feed(
         "clean_history_table": records
     }
 
-
-# =====================================================================
-# 3. WIDGET DỰ BÁO THEO GIỜ KIỂU THỜI TIẾT ("BÂY GIỜ", "12 SA", "1 SA"...)
-# =====================================================================
 @app.get("/api/v1/dashboard/hourly-forecast")
 def get_weather_style_hourly_forecast(
     user_id: Optional[str] = Query(None, description="Mã người dùng"),
     hours: int = Query(5, ge=3, le=12, description="Số giờ tiếp theo cần hiển thị trên thanh ngang")
 ):
-    """
-    Trả về dữ liệu cho Widget Dự báo theo giờ giống hệt ảnh mẫu Thời tiết [cite: 12]:
-      - Cột 0: Luôn là "Bây giờ" (khớp chính xác 100% với chỉ số Clean hiện tại).
-      - Cột 1..N: Các mốc giờ chẵn tiếp theo ("12 SA", "1 SA", "2 SA", "3 SA", "4 SA"...) [cite: 12].
-    """
     target_uid = user_id or ESP32_FAN_CONTROLLER_STATE["active_user_id"]
     profile = get_cached_user_profile(target_uid)
     clean_sensor = get_cached_latest_clean_sensor(force_db=True)
@@ -572,18 +517,8 @@ def get_weather_style_hourly_forecast(
         unfiltered_history_buffer=list(UNFILTERED_HISTORY_BUFFER)
     )
 
-
-# =====================================================================
-# 4. DASHBOARD THEO DÕI LỊCH SỬ BẬT/TẮT QUẠT & THỜI LƯỢNG CHẠY QUẠT
-# =====================================================================
 @app.get("/api/v1/fan/history-dashboard")
 def get_fan_activity_dashboard(limit: int = Query(50, ge=1, le=200)):
-    """
-    Dashboard giúp người dùng theo dõi chi tiết:
-      - Hiện tại quạt đang BẬT hay TẮT? Nếu đang BẬT thì đã chạy liên tục được bao nhiêu phút/giây?
-      - Tổng số lần quạt đã kích hoạt trong ngày, tổng số phút quạt đã chạy lọc không khí.
-      - Danh sách từng lần quạt bật: Bật lúc mấy giờ, tắt lúc mấy giờ, chạy bao lâu, giảm được bao nhiêu µg/m³ bụi.
-    """
     now_vn = datetime.now(VN_TZ)
     current_session_seconds = 0
     if ESP32_FAN_CONTROLLER_STATE["fan_command"] == "ON" and ESP32_FAN_CONTROLLER_STATE.get("active_fan_started_at"):
@@ -648,13 +583,8 @@ def get_fan_activity_dashboard(limit: int = Query(50, ge=1, le=200)):
         "fan_activation_timeline": logs_list
     }
 
-
-# =====================================================================
-# 5. ENDPOINT TỔNG HỢP (ALL-IN-ONE DASHBOARD) & GIAO TIẾP ESP32 / SERVER 1
-# =====================================================================
 @app.get("/api/v1/dashboard/personalized-analysis")
 def get_full_personalized_dashboard(user_id: Optional[str] = Query(None, description="Mã người dùng")):
-    """API All-in-One trả về trọn bộ Hồ sơ + Chỉ số Clean + Cảnh báo + Dự báo theo giờ + Lịch sử Quạt."""
     target_uid = user_id or ESP32_FAN_CONTROLLER_STATE["active_user_id"]
     ESP32_FAN_CONTROLLER_STATE["active_user_id"] = target_uid
 

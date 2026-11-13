@@ -1,14 +1,3 @@
-"""
-File: code/be/server_2/ai_engine.py (Phiên bản v4.0 - Hourly Weather-Style Forecast & Safe Threshold Auto-Calculator)
-Chức năng:
-  1. Suy luận phân cấp 4 tầng (Risk Score 0-100 -> Risk Level 0/1/2 -> Fan Command ON/OFF -> Hurdle Duration).
-  2. Tự động tính toán Ngưỡng an toàn PM2.5 & Gas cá nhân hóa cho người dùng đăng ký mới (nếu người dùng không tự nhập).
-  3. Dự báo chất lượng không khí theo từng mốc giờ thực tế kiểu ứng dụng Thời tiết (Apple Weather style):
-     - Luôn có cột đầu tiên là "Bây giờ" (khớp chính xác 100% với chỉ số Clean hiện tại).
-     - Các cột tiếp theo tự động nhảy theo giờ thực tế Việt Nam (UTC+7): VD đang là 23:14 -> "12 SA", "1 SA", "2 SA", "3 SA", "4 SA", "5 SA" [cite: 12].
-     - Sinh câu tóm tắt xu hướng tự nhiên (Summary Banner) ở phía trên bảng dự báo [cite: 12].
-"""
-
 import os
 import json
 import joblib
@@ -52,7 +41,6 @@ def get_user_engine():
 
 
 def format_vn_hour_label(dt_vn: datetime) -> str:
-    """Chuyển đổi giờ sang định dạng '12 SA', '1 SA', ..., '12 CH', '1 CH' giống hệt ảnh mẫu Thời tiết [cite: 12]."""
     h = dt_vn.hour
     if h == 0:
         return "12 SA"
@@ -70,10 +58,7 @@ def calculate_personalized_safe_thresholds(
     chi_so_fev1_phan_tram: float,
     su_dung_binh_xit: int
 ) -> Dict[str, float]:
-    """
-    Tự động nội suy ngưỡng chịu đựng an toàn PM2.5 (µg/m³) và Gas (ppm)
-    dựa trên mức độ bệnh hô hấp và độ nhạy cảm phế quản khi người dùng đăng ký tài khoản mới.
-    """
+
     base_pm25 = 50.0 - (muc_do_benh_1_4 * 6.5) - (do_nhay_cam_phe_quan_0_100 * 0.18)
     if chi_so_fev1_phan_tram < 70.0:
         base_pm25 -= (70.0 - chi_so_fev1_phan_tram) * 0.15
@@ -234,11 +219,6 @@ class PersonalizedAirAIEngine:
         num_hours_ahead: int = 5,
         unfiltered_history_buffer: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
-        """
-        Tạo bảng dự báo theo từng giờ giống hệt giao diện Thời tiết trong ảnh mẫu [cite: 12]:
-          - Mốc đầu tiên ("Bây giờ"): Luôn lấy trực tiếp 100% từ `current_clean_sensor` vừa nhận được để đảm bảo độ chính xác tuyệt đối!
-          - Các mốc tiếp theo (1..num_hours_ahead giờ tới): Nhãn giờ tự động tính theo đồng hồ thực tế Việt Nam (VD: "12 SA", "1 SA", "2 SA", "3 SA", "4 SA") [cite: 12].
-        """
         now_vn = datetime.now(VN_TZ)
 
         if unfiltered_history_buffer and len(unfiltered_history_buffer) >= 10:
